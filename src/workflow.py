@@ -106,7 +106,7 @@ def run_optimization_workflow():
     
         print("\n--- Building Non-Convex Model (not solving) ---")
     
-        model._build_nonconvex_model() # Explicitly build the non-convex model
+        model._build_nonconvex_model()
     
         print("Non-Convex Model built. The problem is now non-convex.")
     
@@ -116,7 +116,7 @@ def run_optimization_workflow():
     
         print("\n--- Restoring Convex Model ---")
     
-        model.restore_convex_model() # Restore to convex model
+        model.restore_convex_model() 
     
         print("Convex Model Restored. The problem is now convex again.")
     
@@ -163,8 +163,7 @@ def run_optimization_workflow():
         print(f"Expected Demand: {results_original_convex['demand']:.2f} units")
     
         print(f"Model Status: {results_original_convex['status']}")
-    
-    
+
     
         print("\nPlots saved in the 'reports/' directory.")
     
