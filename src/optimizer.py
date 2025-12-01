@@ -73,6 +73,43 @@ class PricingModel:
             
         return info
 
+
+    def _build_nonconvex_model(self):
+        """
+        Build a non-convex model with an added sinusoidal term to the revenue.
+        The non-convexity is introduced by a term like 7000 * sin(price).
+        """
+        self.demand = self.alpha - self.beta * self.price
+        
+        convex_revenue = self.alpha * self.price - self.beta * cp.power(self.price, 2)
+
+        # Non-convex term: 7000 * price^3 (Maximizing a convex function is non-DCP)
+        non_convex_revenue_term = 7000 * cp.power(self.price, 3) # This makes it non-convex
+
+        # Total revenue
+        revenue = convex_revenue + non_convex_revenue_term
+        
+        constraints = [
+            self.demand <= self.max_capacity,
+            self.price <= self.max_price,   
+            self.demand >= 0 
+        ]
+
+        self.problem = cp.Problem(cp.Maximize(revenue), constraints)
+
+        if not self.problem.is_dcp():
+            print("\n" + "="*80)
+            print("The non-convex model is NOT DCP compliant.")
+            print("Attempting to solve this problem with a DCP-only solver will raise an error.")
+
+
+    def restore_convex_model(self):
+        """Restores the model to its original convex form."""
+
+        self._build_convex_model()
+        print("Convex Model Restored.")
+
+
     def calculate_convex_revenue(self, prices_array):
         """Calculates numerical revenue for convex model given an array of prices."""
         
