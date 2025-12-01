@@ -2,10 +2,11 @@ from dataclasses import dataclass
 
 @dataclass
 class Params:
-    ALPHA: int = 1000
-    BETA: float = 2.0
-    MAX_PRICE: float = 150.0
-    MAX_DEMAND_CAPACITY: int = 2500 
+    ALPHA: int = 2000
+    BETA: float = 2
+    MAX_PRICE: float = 2500.0
+    MAX_CAPACITY: int = 2500
+
 
 ## Some Explanation : 
 
@@ -15,4 +16,4 @@ class Params:
 
 # max_price : the maximum we can put to price ( Based on law or other thing )
 
-# max_demand_capacity : the max amount of product you can sell . 
+# max_capacity : the max amount of product you can sell . factory limit 
