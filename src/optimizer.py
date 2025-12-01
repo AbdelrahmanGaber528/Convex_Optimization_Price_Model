@@ -98,7 +98,6 @@ class PricingModel:
         self.problem = cp.Problem(cp.Maximize(revenue), constraints)
 
         if not self.problem.is_dcp():
-            print("\n" + "="*80)
             print("The non-convex model is NOT DCP compliant.")
             print("Attempting to solve this problem with a DCP-only solver will raise an error.")
 
