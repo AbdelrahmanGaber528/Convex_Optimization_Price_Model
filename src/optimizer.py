@@ -5,6 +5,7 @@ from .config import Params as ConfigParams
 class PricingModel:
 
     def __init__(self):
+
         self.alpha = ConfigParams.ALPHA 
         self.beta = ConfigParams.BETA
         self.max_capacity = ConfigParams.MAX_CAPACITY
@@ -31,6 +32,7 @@ class PricingModel:
         # Define the problem
         self.problem = cp.Problem(cp.Maximize(revenue), constraints)
 
+
     def solve_convex(self):
         """Solves the standard convex model"""
 
@@ -50,6 +52,7 @@ class PricingModel:
             print("Solver Failed.")
             return [None, None, None, "Failed"]
 
+
     def check_convexity(self):
         """
         Checks if the objective function is Concave (valid for Maximization).
@@ -68,7 +71,7 @@ class PricingModel:
             info['justification'] = f"The second derivative is negative (${-2 * self.beta}$). This indicates a concave function."
             info['conclusion'] = "The function is **Concave**, guaranteeing a global maximum, making it suitable for maximization using convex optimization."
         elif curvature == 'CONVEX':
-            info['justification'] = f"The second derivative is positive (${2 * self.beta}$"
+            info['justification'] = f"The second derivative is positive (${-2 * self.beta}$). This implies that 'beta' is negative. For price sensitivity, 'beta' is typically positive, which would result in a concave revenue function."
             info['conclusion'] = "The function is **Convex**, meaning a global minimum is guaranteed. It is **not suitable for maximization** without modification or seeking a minimum."
             
         return info
@@ -83,7 +86,6 @@ class PricingModel:
         
         convex_revenue = self.alpha * self.price - self.beta * cp.power(self.price, 2)
 
-        # Non-convex term: 7000 * price^3 (Maximizing a convex function is non-DCP)
         non_convex_revenue_term = 7000 * cp.power(self.price, 3) # This makes it non-convex
 
         # Total revenue
@@ -120,5 +122,5 @@ class PricingModel:
         """Calculates numerical revenue for non-convex model given an array of prices."""
 
         convex_revenue = self.calculate_convex_revenue(prices_array)
-        non_linear_term = 7000 * np.sin(prices_array)
+        non_linear_term = 7000 * np.power(prices_array, 3)
         return convex_revenue + non_linear_term

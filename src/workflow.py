@@ -62,7 +62,6 @@ def run_optimization_workflow():
         model = PricingModel()
     
         
-    
         # --- Solve Original Convex Model ---
     
         print("\n--- Solving Original Convex Model ---")
