@@ -1,9 +1,12 @@
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import argparse
+from src.core.workflow import run_workflow
 
-from src.workflow import run_optimization_workflow
+def main():
+    parser = argparse.ArgumentParser(description='Run the pricing optimization workflow.')
+    parser.add_argument('--dataset', type=str, help='Path to the dataset CSV file.')
+    args = parser.parse_args()
 
+    run_workflow(dataset_path=args.dataset)
 
-if __name__ == "__main__":
-    run_optimization_workflow()
+if __name__ == '__main__':
+    main()

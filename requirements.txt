@@ -1,4 +1,7 @@
-cvxpy
 numpy
+scipy
 matplotlib
 seaborn
+cvxpy
+pandas
+sympy
