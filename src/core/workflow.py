@@ -2,16 +2,20 @@ import numpy as np
 from src.load_dataset import load_sample_dataset, load_from_csv
 from src.core.check_data_convex import DatasetConvexityChecker
 from src.core.optimizer import PricingModel
-from src.visuals.visualizer import plot_comparison_all_three
+from src.visuals.visualizer import plot_separate_revenues, plot_dataset_revenue
 
 def run_workflow(dataset_path=None):
 
     # 1. Load dataset
     print("\nStep 1: Loading dataset...")
     if dataset_path:
-        prices, demands = load_from_csv(dataset_path)
+        prices, demands, min_price, max_price = load_from_csv(dataset_path)
     else:
-        prices, demands = load_sample_dataset()
+        prices, demands, min_price, max_price = load_sample_dataset()
+
+    # Plot dataset revenue
+    plot_dataset_revenue(prices, demands)
+
     # 2. Check if it's convex
     print("\nStep 2: Checking dataset convexity...")
     checker = DatasetConvexityChecker(prices, demands)
@@ -21,10 +25,16 @@ def run_workflow(dataset_path=None):
     # 3. Build model
     print("\nStep 3: Building optimization model...")
     model = PricingModel()
+    model.min_price = min_price
+    model.max_price = max_price
     model._build_model()
 
-    prices_range = np.linspace(model.min_price, model.max_price, 20)
+    # Use real dataset prices (sorted for plotting)
+    prices_range = np.array(sorted(prices))
+
+    # Use the model to compute revenue at these prices
     convex_revenue = model.calculate_convex_revenue(prices_range)
+
 
     # 4. Solve convex problem
     print("\nStep 4: Solving convex optimization problem...")
@@ -61,12 +71,12 @@ def run_workflow(dataset_path=None):
     # 8. Save comparison plot to reports
     print("\nStep 8: Generating and saving comparison plot...")
     if optimal_price is not None:
-        plot_comparison_all_three(
+        plot_separate_revenues(
             prices_range,
             convex_revenue,
             non_convex_revenue,
             restored_revenue,
             optimal_price,
             optimal_revenue,
-            save_path='reports/revenue_comparison.png'
+            save_dir='reports'
         )

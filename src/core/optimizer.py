@@ -10,10 +10,11 @@ class PricingModel:
         self.alpha = ConfigParams.ALPHA 
         self.beta = ConfigParams.BETA
         self.max_capacity = ConfigParams.MAX_CAPACITY
-        self.max_price = ConfigParams.MAX_PRICE
         self.cost_per_unit = ConfigParams.COST_PER_UNIT
         self.min_profit_margin = ConfigParams.MIN_PROFIT_MARGIN
-        self.min_price = self.cost_per_unit  / (1 - self.min_profit_margin)
+
+        self.min_price = None
+        self.max_price = None
 
         self.price = cp.Variable(pos=True, name="Price")
         self.demand = None
