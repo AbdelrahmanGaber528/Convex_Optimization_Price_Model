@@ -1,32 +1,45 @@
 import numpy as np
-from src.load_dataset import load_sample_dataset, load_from_csv
-from src.core.check_data_convex import DatasetConvexityChecker
-from src.core.optimizer import PricingModel
-from src.visuals.visualizer import plot_separate_revenues, plot_dataset_revenue
+import pandas as pd
+from .dataset_operations import Dataset
+from .optimizer import PricingModel
+from ..visuals.visualizer import plot_separate_revenues, plot_dataset_revenue, plot_dataset_convexity, plot_make_dataset_convex
+from ..config import Params
 
 def run_workflow(dataset_path=None):
 
     # 1. Load dataset
     print("\nStep 1: Loading dataset...")
     if dataset_path:
-        prices, demands, min_price, max_price = load_from_csv(dataset_path)
+        df = pd.read_csv(dataset_path)
+        prices = df['price'].values
+        demands = df['demand'].values
     else:
-        prices, demands, min_price, max_price = load_sample_dataset()
+        # Sample dataset if no path is provided
+        prices = np.array([5, 10, 15, 20, 25, 30, 35])
+        demands = np.array([115, 105, 92, 70, 50, 30, 10])
 
     # Plot dataset revenue
     plot_dataset_revenue(prices, demands)
 
     # 2. Check if it's convex
     print("\nStep 2: Checking dataset convexity...")
-    checker = DatasetConvexityChecker(prices, demands)
-    convexity_info = checker.check_curvature()
-    print(f"Curvature: {convexity_info['curvature']}")
+    dataset = Dataset(prices, demands)
+    convexity_info = dataset.check_dataset_convexity_convex_hull()
+    plot_dataset_convexity(prices, demands)
+    print(f"Curvature: {dataset.curvature}")
+
+    # 2a. Make it convex if it is not
+    if not convexity_info['is_convex']:
+        print("\nStep 2a: Making the dataset convex...")
+        plot_make_dataset_convex(prices, demands)
+        dataset.make_convex()
+        prices = dataset.prices
+        demands = dataset.demands
 
     # 3. Build model
     print("\nStep 3: Building optimization model...")
     model = PricingModel()
-    model.min_price = min_price
-    model.max_price = max_price
+    model.max_price = Params.MAX_PRICE
     model._build_model()
 
     # Use real dataset prices (sorted for plotting)
@@ -38,7 +51,7 @@ def run_workflow(dataset_path=None):
 
     # 4. Solve convex problem
     print("\nStep 4: Solving convex optimization problem...")
-    optimal_price, optimal_revenue, final_demand, status = model.solve_convex()
+    optimal_price, optimal_revenue, final_demand, status = model.solve_concave()
     print(f"Status: {status}")
 
     if optimal_price is not None:

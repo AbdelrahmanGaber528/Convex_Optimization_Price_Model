@@ -7,6 +7,7 @@ class Params:
     MAX_CAPACITY: int = 1200
     MIN_PROFIT_MARGIN: float = 0.20
     COST_PER_UNIT: float = 100
+    MAX_PRICE: int = 500
 
 ## Some Explanation :
 

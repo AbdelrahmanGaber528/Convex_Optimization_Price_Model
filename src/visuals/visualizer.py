@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+from src.core.dataset_operations import Dataset
 
 
 def plot_dataset_revenue(prices, demands, save_path='reports/dataset_revenue.png'):
@@ -9,7 +10,6 @@ def plot_dataset_revenue(prices, demands, save_path='reports/dataset_revenue.png
     """
     revenue = prices * demands
     
-    # Sort by price for a continuous line plot
     sorted_indices = prices.argsort()
     sorted_prices = prices[sorted_indices]
     sorted_revenue = revenue[sorted_indices]
@@ -76,10 +76,27 @@ def plot_separate_revenues(prices, rev_convex, rev_nonconvex, rev_restored, opti
     _save_plot(fig3, os.path.join(save_dir, 'restored_convex_revenue.png'))
 
 
+def plot_dataset_convexity(prices, demands, save_path='reports/dataset_convexity.png'):
+    """
+    Checks and plots the convexity of the dataset.
+    """
+    dataset = Dataset(prices, demands)
+    dataset.check_dataset_convexity_convex_hull()
+    dataset.plot_hull(save_path=save_path)
+
+
+def plot_make_dataset_convex(prices, demands, save_path='reports/made_convex_dataset.png'):
+    """
+    Makes the dataset convex and plots the result.
+    """
+    dataset = Dataset(prices, demands)
+    dataset.make_convex()
+    dataset.plot_hull(save_path=save_path)
+
+
 def _save_plot(fig, save_path):
     out_dir = os.path.dirname(save_path)
     if out_dir and not os.path.exists(out_dir):
         os.makedirs(out_dir)
     fig.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
-
