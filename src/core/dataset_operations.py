@@ -24,7 +24,6 @@ class Dataset:
         Check if dataset is convex using convex hull.
         Updates hull points and hull revenue.
         """
-
         try:
             hull = ConvexHull(self.dataset)
             self.hull_points = self.dataset[hull.vertices]
@@ -36,15 +35,6 @@ class Dataset:
             
             self.curvature = "CONVEX" if is_convex else "NOT CONVEX"
             
-            print(f"   Total points: {len(self.dataset)}")
-            print(f"   Hull vertices: {len(hull.vertices)}")
-            print(f"   Hull area: {hull.volume:.2f}")
-            
-            if is_convex:
-                print("\nDataset is CONVEX (all points on hull)")
-            else:
-                print("\nDataset is NOT CONVEX")
-            
             return {
                 'hull': hull,
                 'is_convex': is_convex,
@@ -52,18 +42,15 @@ class Dataset:
                 'n_vertices': len(hull.vertices),
                 'n_points': len(self.dataset)
             }
-            
         except Exception as e:
             print(f"Convex hull computation failed: {e}")
             return None
-
 
     def make_convex(self):
         """
         Transform the dataset into a convex one by projecting revenues
         onto the convex envelope.
         """
-
         sorted_idx = np.argsort(self.prices)
         x_sorted = self.prices[sorted_idx]
         y_sorted = self.revenue[sorted_idx]
@@ -75,12 +62,9 @@ class Dataset:
         y_convex = np.interp(x_sorted, hull_points[:,0], hull_points[:,1])
 
         self.revenue = y_convex
+        with np.errstate(divide='ignore', invalid='ignore'):
+            self.demands = np.nan_to_num(self.revenue / self.prices)
         self.dataset = np.column_stack((self.prices, self.revenue))
-
-        print(" Dataset transformed to convex shape using convex envelope.")
-
-        self.check_dataset_convexity_convex_hull()
-
 
     def plot_hull(self, save_path=None):
         """
@@ -112,6 +96,5 @@ class Dataset:
 
         if save_path:
             plt.savefig(save_path, bbox_inches='tight', dpi=300)
-            print(f"Plot saved to {save_path}")
 
         plt.close()
