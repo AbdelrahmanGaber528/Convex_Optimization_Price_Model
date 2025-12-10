@@ -10,10 +10,12 @@ def run_workflow(dataset_path=None):
     # 1. Load dataset
     print("\nStep 1: Loading dataset...")
     if dataset_path:
+        print(f"Loading data from {dataset_path}")
         df = pd.read_csv(dataset_path)
         prices = df['price'].values
         demands = df['demand'].values
     else:
+        print("Loading sample dataset")
         # Sample dataset if no path is provided
         prices = np.array([5, 10, 15, 20, 25, 30, 35])
         demands = np.array([115, 105, 92, 70, 50, 30, 10])
@@ -41,12 +43,15 @@ def run_workflow(dataset_path=None):
     model = PricingModel()
     model.max_price = Params.MAX_PRICE
     model._build_concave_model()
+    print("Concave model built.")
 
     # Use real dataset prices (sorted for plotting)
     prices_range = np.array(sorted(prices))
 
     # Use the model to compute revenue at these prices
-    convex_revenue = model.calculate_convex_revenue(prices_range)
+    print("\nCalculating revenues for different models...")
+    concave_revenue = model.calculate_concave_revenue(prices_range)
+    print("Calculated concave revenue.")
 
 
     # 4. Solve convex problem
@@ -73,12 +78,14 @@ def run_workflow(dataset_path=None):
     print("\nStep 6: Making the model non-convex...")
     model.build_nonconvex_model()
     non_convex_revenue = model.calculate_nonconvex_revenue(prices_range)
+    print("Calculated non-convex revenue.")
 
 
     # 7. Restore convex
     print("\nStep 7: Restoring the convex model...")
     model.restore_convex_model()
-    restored_revenue = model.calculate_convex_revenue(prices_range)
+    restored_revenue = model.calculate_concave_revenue(prices_range)
+    print("Calculated restored concave revenue.")
 
 
     # 8. Save comparison plot to reports
@@ -86,10 +93,11 @@ def run_workflow(dataset_path=None):
     if optimal_price is not None:
         plot_separate_revenues(
             prices_range,
-            convex_revenue,
+            concave_revenue,
             non_convex_revenue,
             restored_revenue,
             optimal_price,
             optimal_revenue,
             save_dir='reports'
         )
+    print("Workflow finished.")
