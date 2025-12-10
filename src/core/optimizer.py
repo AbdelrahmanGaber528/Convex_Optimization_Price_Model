@@ -6,7 +6,6 @@ from ..config import Params as ConfigParams
 class PricingModel:
 
     def __init__(self):
-        print("Initializing PricingModel...")
         self.alpha = ConfigParams.ALPHA 
         self.beta = ConfigParams.BETA
 
@@ -16,8 +15,7 @@ class PricingModel:
         self.cost_per_unit = ConfigParams.COST_PER_UNIT
         self.min_profit_margin = ConfigParams.MIN_PROFIT_MARGIN
         self.min_price = self.cost_per_unit / (1 - self.min_profit_margin)
-        print(f"Min price calculated: {self.min_price:.2f}")
-
+        
         self.price = cp.Variable(pos=True, name="Price")
 
         self.demand = self.alpha - self.beta * self.price
@@ -29,32 +27,22 @@ class PricingModel:
             self.price >= self.min_price,
             self.demand >= 0
         ]
-        print("Constraints created.")
 
         self.current_model_type = None
 
     def _build_concave_model(self):
         """Build the standard Model"""
-        print("Building concave model...")
-        # base equation 
         revenue = ( self.alpha * self.price ) - ( self.beta * cp.power(self.price, 2) )
-        
         objective = cp.Maximize(revenue)
-
-        # problem
         self.problem = cp.Problem(objective, self.constraints)
-
         self.current_model_type = "concave"
-        print("Concave model built.")
         return revenue
 
     def solve_concave(self):
         """Solve the concave model (maximize revenue)"""
-        print("Solving concave model...")
         try:
             self.problem.solve()
             final_demand = self.alpha - self.beta * self.price.value
-            print("Concave Problem Solved Successfully")
             return [self.price.value, self.problem.value, final_demand, self.problem.status]
         except Exception as e:
             print(f"Error solving concave model: {e}")
@@ -65,7 +53,6 @@ class PricingModel:
         Checks if the objective function is Concave and if the problem is DCP compliant.
         Returns: dict with curvature info and DCP status.
         """
-        print("Checking convexity with CVXPY DCP rules...")
         revenue = self.alpha * self.price - self.beta * cp.power(self.price, 2)
         curvature = revenue.curvature
         is_dcp_compliant = self.problem.is_dcp() if self.problem else False
@@ -85,33 +72,21 @@ class PricingModel:
             info['justification'] = f"The second derivative is positive (${2*self.beta}$). This implies that 'beta' is negative. For price sensitivity, 'beta' is typically positive, which would result in a concave revenue function."
             info['conclusion'] = "The function is **Convex**, meaning a global minimum is guaranteed. It is **not suitable for maximization** without modification or seeking a minimum."
         
-        print("DCP check complete.")
         return info
 
     def check_convexity_hessian(self):
         """
         Check convexity using Hessian Matrix (Second Derivative)
         """
-        print("Checking convexity with Hessian matrix...")
         hessian = -2 * self.beta
         
-        print("HESSIAN MATRIX ANALYSIS")
-        print(f"Revenue Function: R(p) = {self.alpha}p - {self.beta}p²")
-        
         if hessian < 0:
-            print(f"Result: CONCAVE (Hessian = {hessian} < 0)")
-            print("   Shape: Mountain (curves downward)")
-            print("   Optimization: Perfect for MAXIMIZATION")
             result = "CONCAVE"
         elif hessian > 0:
-            print(f"Result: CONVEX (Hessian = {hessian} > 0)")
-            print("   Shape: Bowl (curves upward)")
-            print("   Optimization: Perfect for MINIMIZATION")
             result = "CONVEX"
         else:
             result = "LINEAR"
         
-        print("Hessian check complete.")
         return {
             'method': 'Hessian Matrix (Second Derivative)',
             'hessian_value': hessian,
@@ -122,41 +97,20 @@ class PricingModel:
             'suitable_for_maximization': hessian < 0
         }
 
-    def check_convexity_derivative(self):
-        # Symbols
-        p_sym = sp.Symbol('p') 
-        a_sym = sp.Symbol('alpha')
-        b_sym = sp.Symbol('beta') 
-
-        revenue_func = a_sym * p_sym - b_sym * p_sym**2
-        second_derivative = sp.diff(revenue_func, p_sym, 2)
-        hessian_value = float(second_derivative.subs({b_sym: self.beta}))
-
-        if hessian_value < 0:
-            print("5. Conclusion:\n   Hessian is NEGATIVE. Function is CONCAVE (Hill shape).")
-            return "CONCAVE"
-        elif hessian_value > 0:
-            print("5. Conclusion:\n   Hessian is POSITIVE. Function is CONVEX (Bowl shape).")
-            return "CONVEX"
-
     def build_convex_model(self):
         """
         Convert to CONVEX model by negating objective
         """    
-        print("Building convex model...")
         g_of_R = -self.alpha * self.price + self.beta * cp.power(self.price, 2)
         self.problem = cp.Problem(cp.Minimize(g_of_R), self.constraints)
         self.current_model_type = "convex"
-        print("Convex model built.")
         return g_of_R
 
     def solve_convex(self):
         """Solve the convex model (minimize g(R))"""
-        print("Solving convex model...")
         try:
             self.problem.solve()
             final_demand = self.alpha - self.beta * self.price.value
-            print("Convex Problem Solved Successfully")
             return [self.price.value, self.problem.value, final_demand, self.problem.status]
         except Exception as e:
             print(f"Error solving convex model: {e}")
@@ -166,51 +120,17 @@ class PricingModel:
         """
         Construct a NON-CONVEX and NON-CONCAVE revenue model.
         """
-        print("Building non-convex model...")
         base_revenue = self.alpha * self.price - self.beta * cp.power(self.price, 2)
         cubic_term = 0.001 * cp.power(self.price, 3)
         revenue = base_revenue + cubic_term
         objective = cp.Maximize(revenue)
         self.problem = cp.Problem(objective, self.constraints)
         self.current_model_type = "nonconvex_nonconcave"
-        print("Non-Convex, Non-Concave Model BUILT.")
         return revenue
 
     def restore_convex_model(self):
         """Restores the model to its convex version."""
-        print("Restoring convex model...")
         self.build_convex_model()
-        print("Convex model restored.")
-
-    def check_convexity_dcp_all_equations(self):
-        """
-        Check convexity using CVXPY's DCP (Disciplined Convex Programming) rules
-        """
-        print("CVXPY DCP ANALYSIS")
-        
-        #  CONCAVE function
-        revenue = self.alpha * self.price - self.beta * cp.power(self.price, 2)
-        print("\nCONCAVE Function:")
-        print(f"   Curvature: {revenue.curvature}")
-        print(f"   Is DCP: {revenue.is_dcp()}")
-        
-        # CONVEX function
-        g_of_r = -self.alpha * self.price + self.beta * cp.power(self.price, 2)
-        print("\nCONVEX Function:")
-        print(f"   Curvature: {g_of_r.curvature}")
-        print(f"   Is DCP: {g_of_r.is_dcp()}")
-        
-        # NON-CONVEX function
-        nonconvex = -self.alpha * self.price + self.beta * cp.power(self.price, 2) - 0.001 * cp.power(self.price, 3)
-        print("\nNON-CONVEX Function:")
-        print(f"   Curvature: {nonconvex.curvature}")
-        print(f"   Is DCP: {nonconvex.is_dcp()}")
-        
-        return {
-            'concave': {'curvature': str(revenue.curvature), 'is_dcp': revenue.is_dcp()},
-            'convex': {'curvature': str(g_of_r.curvature), 'is_dcp': g_of_r.is_dcp()},
-            'nonconvex': {'curvature': str(nonconvex.curvature), 'is_dcp': nonconvex.is_dcp()}
-        }
 
     def calculate_concave_revenue(self, prices_array):
         """

@@ -10,17 +10,13 @@ def run_workflow(dataset_path=None):
     # 1. Load dataset
     print("\nStep 1: Loading dataset...")
     if dataset_path:
-        print(f"Loading data from {dataset_path}")
         df = pd.read_csv(dataset_path)
         prices = df['price'].values
         demands = df['demand'].values
     else:
-        print("Loading sample dataset")
-        # Sample dataset if no path is provided
         prices = np.array([5, 10, 15, 20, 25, 30, 35])
         demands = np.array([115, 105, 92, 70, 50, 30, 10])
 
-    # Plot dataset revenue
     plot_dataset_revenue(prices, demands)
 
     # 2. Check if it's convex
@@ -43,16 +39,9 @@ def run_workflow(dataset_path=None):
     model = PricingModel()
     model.max_price = Params.MAX_PRICE
     model._build_concave_model()
-    print("Concave model built.")
 
-    # Use real dataset prices (sorted for plotting)
     prices_range = np.array(sorted(prices))
-
-    # Use the model to compute revenue at these prices
-    print("\nCalculating revenues for different models...")
     concave_revenue = model.calculate_concave_revenue(prices_range)
-    print("Calculated concave revenue.")
-
 
     # 4. Solve convex problem
     print("\nStep 4: Solving convex optimization problem...")
@@ -73,20 +62,15 @@ def run_workflow(dataset_path=None):
     hessian_check = model.check_convexity_hessian()
     print(f"Hessian result: {hessian_check['result']}")
 
-
     # 6. Make it nonconvex
     print("\nStep 6: Making the model non-convex...")
     model.build_nonconvex_model()
     non_convex_revenue = model.calculate_nonconvex_revenue(prices_range)
-    print("Calculated non-convex revenue.")
-
 
     # 7. Restore convex
     print("\nStep 7: Restoring the convex model...")
     model.restore_convex_model()
     restored_revenue = model.calculate_concave_revenue(prices_range)
-    print("Calculated restored concave revenue.")
-
 
     # 8. Save comparison plot to reports
     print("\nStep 8: Generating and saving comparison plot...")
