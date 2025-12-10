@@ -40,7 +40,7 @@ def run_workflow(dataset_path=None):
     print("\nStep 3: Building optimization model...")
     model = PricingModel()
     model.max_price = Params.MAX_PRICE
-    model._build_model()
+    model._build_concave_model()
 
     # Use real dataset prices (sorted for plotting)
     prices_range = np.array(sorted(prices))
@@ -63,7 +63,7 @@ def run_workflow(dataset_path=None):
 
     # 5. Check cvxpy & hessian
     print("\nStep 5: Checking convexity with CVXPY and Hessian...")
-    cvxpy_check = model.check_convexity_cvxpy()
+    cvxpy_check = model.check_convexity_curve_dcp()
     print(f"CVXPY conclusion: {cvxpy_check['conclusion']}")
     hessian_check = model.check_convexity_hessian()
     print(f"Hessian result: {hessian_check['result']}")
@@ -71,8 +71,8 @@ def run_workflow(dataset_path=None):
 
     # 6. Make it nonconvex
     print("\nStep 6: Making the model non-convex...")
-    model._build_nonconvex_model()
-    non_convex_revenue = model.calculate_non_convex_revenue(prices_range)
+    model.build_nonconvex_model()
+    non_convex_revenue = model.calculate_nonconvex_revenue(prices_range)
 
 
     # 7. Restore convex
