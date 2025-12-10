@@ -22,49 +22,75 @@ class Dataset:
     def check_dataset_convexity_convex_hull(self):
         """
         Check if dataset is convex using convex hull.
-        Updates hull points and hull revenue.
+        Stores:
+            - self.hull_points
+            - self.hull_revenue
+            - self.curvature
         """
+
         try:
-            hull = ConvexHull(self.dataset)
-            self.hull_points = self.dataset[hull.vertices]
-            
-            sorted_hull = self.hull_points[np.argsort(self.hull_points[:,0])]
-            self.hull_revenue = np.interp(self.prices, sorted_hull[:,0], sorted_hull[:,1])
-            
-            is_convex = len(hull.vertices) == len(self.dataset)
-            
+            points = self.dataset
+            hull = ConvexHull(points)
+
+            # Extract hull points (unsorted)
+            hull_points = points[hull.vertices]
+
+            # Sort hull points by price for consistent interpolation
+            hull_points = hull_points[np.argsort(hull_points[:, 0])]
+
+            # Save internally
+            self.hull_points = hull_points
+
+            # Interpolate convex hull revenue curve across dataset prices
+            self.hull_revenue = np.interp(self.prices, hull_points[:, 0], hull_points[:, 1])
+
+            # Check convexity by ensuring all revenue points are on or below the hull
+            is_convex = np.all(self.revenue <= self.hull_revenue + 1e-8)
+
             self.curvature = "CONVEX" if is_convex else "NOT CONVEX"
-            
+
             return {
                 'hull': hull,
                 'is_convex': is_convex,
                 'vertices': hull.vertices,
                 'n_vertices': len(hull.vertices),
-                'n_points': len(self.dataset)
+                'n_points': len(points)
             }
+
         except Exception as e:
             print(f"Convex hull computation failed: {e}")
             return None
 
+
+
     def make_convex(self):
         """
-        Transform the dataset into a convex one by projecting revenues
-        onto the convex envelope.
+        Method: Replace original revenue with the convex hull revenue.
+        This restores convexity by pulling non-convex points down to the hull.
         """
-        sorted_idx = np.argsort(self.prices)
-        x_sorted = self.prices[sorted_idx]
-        y_sorted = self.revenue[sorted_idx]
 
-        hull = ConvexHull(np.column_stack((x_sorted, y_sorted)))
-        hull_points = np.column_stack((x_sorted, y_sorted))[hull.vertices]
-        hull_points = hull_points[np.argsort(hull_points[:,0])]
+        # Ensure hull is computed
+        if self.hull_points is None or self.hull_revenue is None:
+            self.check_dataset_convexity_convex_hull()
 
-        y_convex = np.interp(x_sorted, hull_points[:,0], hull_points[:,1])
+        # Replace original revenue with the convex hull's upper envelope
+        self.revenue = self.hull_revenue
 
-        self.revenue = y_convex
-        with np.errstate(divide='ignore', invalid='ignore'):
-            self.demands = np.nan_to_num(self.revenue / self.prices)
+        # Update demands to stay consistent with the new revenue
+        # Avoid division by zero with a small epsilon
+        self.demands = self.revenue / (self.prices + 1e-9)
         self.dataset = np.column_stack((self.prices, self.revenue))
+
+        # Recompute hull after transformation
+        self.check_dataset_convexity_convex_hull()
+
+        return {
+            "status": "revenue replaced with convex hull",
+            "points_updated": len(self.prices)
+        }
+
+
+
 
     def plot_hull(self, save_path=None):
         """

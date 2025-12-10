@@ -54,6 +54,18 @@ def plot_separate_revenues(prices, rev_concave, rev_nonconvex, rev_restored, opt
     ax3.legend()
     _save_plot(fig3, os.path.join(save_dir, 'restored_concave_revenue.png'))
 
+def plot_solver_objective(prices, rev_convex, save_path='reports/solver_objective.png'):
+    """
+    Plots the solver's objective function (negative revenue).
+    """
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.plot(prices, rev_convex, label='Solver Objective (Negative Revenue)', linewidth=2)
+    ax.set_xlabel('Price')
+    ax.set_ylabel('Objective Value')
+    ax.set_title('Price vs. Solver Objective')
+    ax.legend()
+    _save_plot(fig, save_path)
+
 def plot_dataset_convexity(prices, demands, save_path='reports/dataset_convexity.png'):
     """
     Checks and plots the convexity of the dataset.

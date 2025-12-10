@@ -38,6 +38,7 @@ class PricingModel:
         self.current_model_type = "concave"
         return revenue
 
+
     def solve_concave(self):
         """Solve the concave model (maximize revenue)"""
         try:
@@ -50,12 +51,15 @@ class PricingModel:
 
     def check_convexity_curve_dcp(self):
         """
-        Checks if the objective function is Concave and if the problem is DCP compliant.
+        Checks if the objective function is Concave/Convex and if the problem is DCP compliant.
         Returns: dict with curvature info and DCP status.
         """
-        revenue = self.alpha * self.price - self.beta * cp.power(self.price, 2)
-        curvature = revenue.curvature
-        is_dcp_compliant = self.problem.is_dcp() if self.problem else False
+        if not self.problem:
+            return {"error": "Problem not built yet."}
+
+        # Get curvature from the current problem's objective
+        curvature = self.problem.objective.expr.curvature
+        is_dcp_compliant = self.problem.is_dcp()
 
         info = {
             'curvature': str(curvature),
@@ -66,26 +70,34 @@ class PricingModel:
         }
 
         if curvature == 'CONCAVE':
-            info['justification'] = f"The second derivative is negative (${-2*self.beta}$). This indicates a concave function."
-            info['conclusion'] = "The function is **Concave**, guaranteeing a global maximum, making it suitable for maximization using convex optimization."
+            info['justification'] = "The objective function is concave."
+            info['conclusion'] = "The function is **Concave**, suitable for maximization."
         elif curvature == 'CONVEX':
-            info['justification'] = f"The second derivative is positive (${2*self.beta}$). This implies that 'beta' is negative. For price sensitivity, 'beta' is typically positive, which would result in a concave revenue function."
-            info['conclusion'] = "The function is **Convex**, meaning a global minimum is guaranteed. It is **not suitable for maximization** without modification or seeking a minimum."
+            info['justification'] = "The objective function is convex."
+            info['conclusion'] = "The function is **Convex**, suitable for minimization."
+        else:
+            info['conclusion'] = f"The function is **{curvature}**."
         
         return info
+
 
     def check_convexity_hessian(self):
         """
         Check convexity using Hessian Matrix (Second Derivative)
         """
-        hessian = -2 * self.beta
-        
+
+        if self.current_model_type == "convex":
+            hessian = 2 * self.beta  
+        else:
+            hessian = -2 * self.beta
+
         if hessian < 0:
             result = "CONCAVE"
+            suitable_for_maximization = True
         elif hessian > 0:
             result = "CONVEX"
-        else:
-            result = "LINEAR"
+            suitable_for_maximization = False
+
         
         return {
             'method': 'Hessian Matrix (Second Derivative)',
@@ -94,7 +106,7 @@ class PricingModel:
             'result': result,
             'is_concave': hessian < 0,
             'is_convex': hessian > 0,
-            'suitable_for_maximization': hessian < 0
+            'suitable_for_maximization': suitable_for_maximization
         }
 
     def build_convex_model(self):
