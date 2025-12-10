@@ -24,7 +24,7 @@ class Dataset:
         Check if dataset is convex using convex hull.
         Updates hull points and hull revenue.
         """
-        
+
         try:
             hull = ConvexHull(self.dataset)
             self.hull_points = self.dataset[hull.vertices]
@@ -80,6 +80,7 @@ class Dataset:
         print(" Dataset transformed to convex shape using convex envelope.")
 
         self.check_dataset_convexity_convex_hull()
+
 
     def plot_hull(self, save_path=None):
         """

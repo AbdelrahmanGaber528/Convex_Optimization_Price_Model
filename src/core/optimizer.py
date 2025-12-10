@@ -143,6 +143,7 @@ class PricingModel:
         Convex transformation of revenue for CVXPY solver: g(p) = -R(p)
         """
         return -prices_array * (self.alpha - self.beta * prices_array)
+    
 
     def calculate_nonconvex_revenue(self, prices_array):
         """

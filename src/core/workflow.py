@@ -72,7 +72,7 @@ def run_workflow(dataset_path=None):
     model.restore_convex_model()
     restored_revenue = model.calculate_concave_revenue(prices_range)
 
-    # 8. Save comparison plot to reports
+    # 8. Save plot to reports
     print("\nStep 8: Generating and saving comparison plot...")
     if optimal_price is not None:
         plot_separate_revenues(
