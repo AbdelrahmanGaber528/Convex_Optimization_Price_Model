@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.spatial import ConvexHull
-import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 class Dataset:
@@ -18,6 +17,8 @@ class Dataset:
         self.hull_points = None
         self.hull_revenue = None
         self.curvature = None
+        self._previous_revenue_before_nonconvex = None # Store revenue before making non-convex
+        self._previous_demands_before_nonconvex = None # Store demands before making non-convex
 
     def check_dataset_convexity_convex_hull(self):
         """
@@ -89,7 +90,51 @@ class Dataset:
             "points_updated": len(self.prices)
         }
 
+    def make_nonconvex(self, amplitude=500, frequency_factor=2):
+        """
+        Transforms the dataset to a non-convex shape by adding a sine wave to the revenue.
+        Stores the current (convex) state for later restoration.
+        """
+        self._previous_revenue_before_nonconvex = self.revenue.copy()
+        self._previous_demands_before_nonconvex = self.demands.copy()
 
+        # Add a deterministic non-convex component to the revenue
+        self.revenue = self.revenue + amplitude * np.sin(self.prices / frequency_factor)
+        
+        # Update demands to stay consistent with the new revenue
+        self.demands = self.revenue / (self.prices + 1e-9)
+        self.dataset = np.column_stack((self.prices, self.revenue))
+
+        # Recompute hull after transformation
+        self.check_dataset_convexity_convex_hull()
+
+        return {
+            "status": "dataset transformed to non-convex",
+            "points_updated": len(self.prices)
+        }
+
+    def restore_from_nonconvex(self):
+        """
+        Restores the dataset to the state it was in before make_nonconvex was called.
+        Then, it calls make_convex to ensure it's convex again.
+        """
+        if self._previous_revenue_before_nonconvex is not None:
+            self.revenue = self._previous_revenue_before_nonconvex
+            self.demands = self._previous_demands_before_nonconvex
+            self.dataset = np.column_stack((self.prices, self.revenue))
+            
+            # Ensure it's convex after restoration
+            self.make_convex()
+
+            self._previous_revenue_before_nonconvex = None
+            self._previous_demands_before_nonconvex = None
+
+            return {
+                "status": "dataset restored and made convex",
+                "points_updated": len(self.prices)
+            }
+        else:
+            return {"status": "No previous non-convex state to restore from."}
 
 
     def plot_hull(self, save_path=None):
@@ -97,6 +142,7 @@ class Dataset:
         Plot dataset with convex hull and highlight points above/below hull.
         Optionally save plot to file.
         """
+        import matplotlib.pyplot as plt
         if self.hull_points is None or self.hull_revenue is None:
             self.check_dataset_convexity_convex_hull()
 

@@ -2,12 +2,12 @@ from dataclasses import dataclass
 
 @dataclass
 class Params:
-    ALPHA: int = 1500
-    BETA: int = 2
-    MAX_CAPACITY: int = 1200
+    ALPHA: int = 150
+    BETA: int = 4
+    MAX_CAPACITY: int = 200
     MIN_PROFIT_MARGIN: float = 0.20
-    COST_PER_UNIT: float = 100
-    MAX_PRICE: int = 500
+    COST_PER_UNIT: float = 10
+    MAX_PRICE: int = 300
 
 ## Some Explanation :
 

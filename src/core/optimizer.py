@@ -43,8 +43,11 @@ class PricingModel:
         """Solve the concave model (maximize revenue)"""
         try:
             self.problem.solve()
-            final_demand = self.alpha - self.beta * self.price.value
-            return [self.price.value, self.problem.value, final_demand, self.problem.status]
+            if self.price.value is not None:
+                final_demand = self.alpha - self.beta * self.price.value
+                return [self.price.value, self.problem.value, final_demand, self.problem.status]
+            else:
+                return [None, None, None, self.problem.status]
         except Exception as e:
             print(f"Error solving concave model: {e}")
             return [None, None, None, "Failed"]
@@ -97,6 +100,9 @@ class PricingModel:
         elif hessian > 0:
             result = "CONVEX"
             suitable_for_maximization = False
+        else: # Handles cases where hessian is 0 or indefinite (though not for this specific model)
+            result = "NEITHER CONVEX NOR CONCAVE"
+            suitable_for_maximization = False
 
         
         return {
@@ -118,27 +124,36 @@ class PricingModel:
         self.current_model_type = "convex"
         return g_of_R
 
+
     def solve_convex(self):
         """Solve the convex model (minimize g(R))"""
         try:
             self.problem.solve()
-            final_demand = self.alpha - self.beta * self.price.value
-            return [self.price.value, self.problem.value, final_demand, self.problem.status]
+            if self.price.value is not None:
+                final_demand = self.alpha - self.beta * self.price.value
+                return [self.price.value, self.problem.value, final_demand, self.problem.status]
+            else:
+                return [None, None, None, self.problem.status]
         except Exception as e:
             print(f"Error solving convex model: {e}")
             return [None, None, None, "Failed"]
+
 
     def build_nonconvex_model(self):
         """
         Construct a NON-CONVEX and NON-CONCAVE revenue model.
         """
         base_revenue = self.alpha * self.price - self.beta * cp.power(self.price, 2)
-        cubic_term = 0.001 * cp.power(self.price, 3)
-        revenue = base_revenue + cubic_term
-        objective = cp.Maximize(revenue)
+        cubic_term = 0.05 * cp.power(self.price, 3)
+        revenue = - base_revenue + cubic_term
+
+        objective = cp.Minimize(revenue)
         self.problem = cp.Problem(objective, self.constraints)
-        self.current_model_type = "nonconvex_nonconcave"
+
+        self.current_model_type = "nonconvex"
+        
         return revenue
+
 
     def restore_convex_model(self):
         """Restores the model to its convex version."""
@@ -161,5 +176,5 @@ class PricingModel:
         """
         Non-convex, non-concave revenue with a cubic term.
         """
-        return prices_array * (self.alpha - self.beta * prices_array) + 0.001 * np.power(prices_array, 3)
+        return prices_array * (self.alpha - self.beta * prices_array) + 0.5 * np.power(prices_array, 3)
 

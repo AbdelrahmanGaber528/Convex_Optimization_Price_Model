@@ -1,24 +1,20 @@
-import numpy as np
-import pandas as pd
-from .dataset_operations import Dataset
-from .optimizer import PricingModel
-from src.visuals.visualizer import plot_dataset_revenue, plot_convex_hull, plot_separate_revenues, plot_comparison_all_three, plot_revenue_curve
-from src.config import Params
 from src.load_dataset import load_dataset
+from src.core.dataset_operations import Dataset
+from src.core.optimizer import PricingModel
+from src.config import Params
 
-def run_workflow():
-
+def run_core_logic():
+    """
+    Runs the core logic of the project without generating plots.
+    """
     # 1. Load dataset
     print("\nStep 1: Loading dataset...")
     prices, demands = load_dataset()
-
-    plot_dataset_revenue(prices, demands)
 
     # 2. Check if it's convex
     print("\nStep 2: Checking dataset convexity...")
     dataset = Dataset(prices, demands)
     convexity_info = dataset.check_dataset_convexity_convex_hull()
-    plot_convex_hull(prices, demands, save_path='reports/convex_hull_before_transformation.png')
     print(f"Curvature: {dataset.curvature}")
     print("Dataset Convexity Before Transformation:")
     print(f"  Is Convex: {convexity_info['is_convex']}")
@@ -32,11 +28,8 @@ def run_workflow():
         prices = dataset.prices
         demands = dataset.demands
         
-        print("\nStep 2b: Plotting dataset after making it convex...")
-        plot_convex_hull(prices, demands, save_path='reports/convex_hull_after_transformation.png')
-
         # Add a check after transformation
-        print("\nStep 2c: Checking dataset convexity after transformation...")
+        print("\nStep 2b: Checking dataset convexity after transformation...")
         post_transform_convexity_info = dataset.check_dataset_convexity_convex_hull()
         print("Dataset Convexity After Transformation:")
         print(f"  Is Convex: {post_transform_convexity_info['is_convex']}")
@@ -44,37 +37,12 @@ def run_workflow():
             print("  Conclusion: Dataset successfully made convex.")
         else:
             print("  Warning: Dataset is still not convex after transformation.")
-    
-    # Update prices and demands from dataset after potential convexification
-    prices = dataset.prices
-    demands = dataset.demands
-
-    # 2d. Make the dataset non-convex and then restore it (New Feature)
-    print("\nStep 2d: Demonstrating dataset non-convex transformation and restoration...")
-
-    # Visualize the current (convex) state before transformation
-    plot_convex_hull(dataset.prices, dataset.demands, save_path='reports/dataset_state_convex_before_nonconvex_transform.png', title="Dataset: Convex Before Non-convex Transform")
-
-    # Make the dataset non-convex
-    dataset.make_nonconvex(amplitude=500, frequency_factor=2)
-    print("  Dataset made non-convex.")
-    # Visualize the non-convex state
-    plot_convex_hull(dataset.prices, dataset.demands, save_path='reports/dataset_state_nonconvex.png', title="Dataset: Non-Convex State")
-
-    # Restore the dataset to convex
-    dataset.restore_from_nonconvex()
-    print("  Dataset restored to convex.")
-    # Visualize the restored convex state
-    plot_convex_hull(dataset.prices, dataset.demands, save_path='reports/dataset_state_restored_convex.png', title="Dataset: Restored Convex State")
 
     # 3. Build model
     print("\nStep 3: Building optimization model...")
     model = PricingModel()
     model.max_price = Params.MAX_PRICE
     model._build_concave_model()
-
-    prices_range = np.array(sorted(prices))
-    concave_revenue = model.calculate_concave_revenue(prices_range)
 
     # 4. Check cvxpy & hessian
     print("\nStep 4: Checking convexity with CVXPY and Hessian...")
@@ -123,46 +91,12 @@ def run_workflow():
     # 8. Make it nonconvex
     print("\nStep 8: Making the model non-convex...")
     model.build_nonconvex_model()
-    non_convex_revenue = model.calculate_nonconvex_revenue(prices_range)
-    plot_revenue_curve(prices_range, non_convex_revenue, "Non-Convex Revenue Curve", "reports/non_convex_check.png")
-    
-    print("\nStep 8a: Checking Hessian of non-convex model...")
-    hessian_check_nonconvex = model.check_convexity_hessian()
-    print("Hessian Convexity Check (Non-Convex Model):")
-    print(f"  Result: {hessian_check_nonconvex['result']}")
-    print(f"  Suitable for Maximization: {hessian_check_nonconvex['suitable_for_maximization']}")
 
     # 9. Restore convex
     print("\nStep 9: Restoring the convex model...")
     model.restore_convex_model()
-    restored_revenue = model.calculate_concave_revenue(prices_range)
-    plot_revenue_curve(prices_range, restored_revenue, "Restored Concave Revenue Curve", "reports/restored_concave_check.png")
 
-    print("\nStep 9a: Checking Hessian of restored model...")
-    hessian_check_restored = model.check_convexity_hessian()
-    print("Hessian Convexity Check (Restored Model):")
-    print(f"  Result: {hessian_check_restored['result']}")
-    print(f"  Suitable for Maximization: {hessian_check_restored['suitable_for_maximization']}")
+    print("Core logic finished.")
 
-    # 10. Save all plots
-    print("\nStep 10: Generating and saving all plots...")
-    if optimal_price is not None:
-        solver_objective = model.calculate_convex_revenue(prices_range)
-        plot_separate_revenues(
-            prices_range,
-            concave_revenue,
-            non_convex_revenue,
-            solver_objective,
-            optimal_price,
-            optimal_revenue
-        )
-        plot_comparison_all_three(
-            prices_range,
-            restored_revenue,
-            non_convex_revenue,
-            solver_objective,
-            optimal_price,
-            optimal_revenue
-        )
-
-    print("Workflow finished.")
+if __name__ == '__main__':
+    run_core_logic()
